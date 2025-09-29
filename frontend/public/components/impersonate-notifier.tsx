@@ -1,5 +1,5 @@
 import { connect } from 'react-redux';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { Banner, Flex, Button } from '@patternfly/react-core';
 import { getImpersonate, ImpersonateKind } from '@console/dynamic-plugin-sdk';
@@ -30,6 +30,15 @@ export const ImpersonateNotifier = connect(
       ? t(modelFor(impersonate.kind).labelKey)
       : impersonate.kind;
     const impersonateName = impersonate.name;
+
+    // Handle UserWithGroups display
+    const isUserWithGroups = impersonate.kind === 'UserWithGroups';
+    const displayKind = isUserWithGroups ? 'multi-group' : kindTranslated;
+    const groupsText =
+      isUserWithGroups && impersonate.groups?.length > 0
+        ? ` with groups: ${impersonate.groups.join(', ')}`
+        : '';
+
     return (
       <Banner color="blue">
         <Flex
@@ -39,14 +48,17 @@ export const ImpersonateNotifier = connect(
         >
           <strong>
             {t('public~Impersonating {{kind}}', {
-              kind: kindTranslated,
+              kind: displayKind,
             })}
           </strong>{' '}
           <p>
-            <Trans t={t} ns="public">
-              You are impersonating <strong>{{ impersonateName }}</strong>. You are viewing all
-              resources and roles this {{ kindTranslated }} can access.
-            </Trans>{' '}
+            {/* FIXME: HACK: this is a hack to display the multi-group impersonation */}
+            You are impersonating{' '}
+            <strong>
+              {impersonateName}
+              {groupsText}
+            </strong>
+            . You are viewing all resources and roles this {displayKind} can access.{' '}
             <Button
               isInline
               type="button"

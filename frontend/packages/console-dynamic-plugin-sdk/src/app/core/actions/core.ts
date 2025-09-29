@@ -12,7 +12,6 @@ export enum ActionType {
 }
 
 export const setUser = (userInfo: UserInfo) => action(ActionType.SetUser, { userInfo });
-
 export const beginImpersonate = (
   kind: string,
   name: string,

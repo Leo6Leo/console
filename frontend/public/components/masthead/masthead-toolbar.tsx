@@ -55,6 +55,7 @@ import darkFeedbackImage from '@patternfly/react-user-feedback/dist/esm/images/r
 import QuickCreate, { QuickCreateImportFromGit, QuickCreateContainerImages } from '../QuickCreate';
 import { ThemeContext, THEME_DARK } from '../ThemeProvider';
 import { useK8sWatchResource } from '../utils/k8s-watch-hook';
+import { ImpersonateUserModal } from '../modals/impersonate-user-modal';
 
 const LAST_CONSOLE_ACTIVITY_TIMESTAMP_LOCAL_STORAGE_KEY = 'last-console-activity-timestamp';
 
@@ -154,6 +155,7 @@ const MastheadToolbarContents: React.FCC<MastheadToolbarContentsProps> = ({
   const consoleCLIDownloadFlag = useFlag(FLAGS.CONSOLE_CLI_DOWNLOAD);
   const openshiftFlag = useFlag(FLAGS.OPENSHIFT);
   const quickstartFlag = useFlag(FLAGS.CONSOLE_QUICKSTART);
+  const impersonateFlag = useFlag(FLAGS.IMPERSONATE);
   const dispatch = useDispatch();
   const [activeNamespace] = useActiveNamespace();
   const [activePerspective] = useActivePerspective();
@@ -178,6 +180,7 @@ const MastheadToolbarContents: React.FCC<MastheadToolbarContentsProps> = ({
   const [statusPageData, setstatusPageData] = useState(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isImpersonateModalOpen, setIsImpersonateModalOpen] = useState(false);
   const applicationLauncherMenuRef = useRef(null);
   const helpMenuRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -518,6 +521,24 @@ const MastheadToolbarContents: React.FCC<MastheadToolbarContentsProps> = ({
       },
     ];
 
+    // Add impersonate option if impersonation is enabled and user is currently impersonating
+    if (impersonateFlag && !flagPending(impersonateFlag) && impersonate) {
+      userActions.unshift({
+        label: t('public~Stop impersonating'),
+        callback: () => dispatch(UIActions.stopImpersonate()),
+        dataTest: 'stop-impersonate',
+      });
+    }
+
+    // Add impersonate option if impersonation is enabled
+    if (impersonateFlag && !flagPending(impersonateFlag) && !impersonate) {
+      userActions.unshift({
+        label: t('public~Impersonate User'),
+        callback: () => setIsImpersonateModalOpen(true),
+        dataTest: 'impersonate-user',
+      });
+    }
+
     if (authEnabledFlag) {
       const logout = (e) => {
         e.preventDefault();
@@ -812,6 +833,22 @@ const MastheadToolbarContents: React.FCC<MastheadToolbarContentsProps> = ({
           onClose={() => setIsFeedbackModalOpen(false)}
         />
       ) : null}
+      {impersonateFlag && (
+        <ImpersonateUserModal
+          isOpen={isImpersonateModalOpen}
+          onClose={() => setIsImpersonateModalOpen(false)}
+          onImpersonate={(username: string, groups: string[]) => {
+            if (groups && groups.length > 0) {
+              dispatch(UIActions.startImpersonate('UserWithGroups', username, groups));
+            } else {
+              dispatch(UIActions.startImpersonate('User', username));
+            }
+            setIsImpersonateModalOpen(false);
+          }}
+          prefilledUsername=""
+          isUsernameReadonly={false}
+        />
+      )}
     </>
   );
 };

@@ -111,8 +111,8 @@ export const ImpersonateUserModal: React.FC<ImpersonateUserModalProps> = ({
 
   const handleImpersonate = () => {
     if (validateForm()) {
-      onImpersonate(username.trim(), selectedGroups);
       handleClose();
+      onImpersonate(username.trim(), selectedGroups);
     }
   };
 

@@ -6,11 +6,6 @@ import { referenceForModel } from '@console/internal/module/k8s';
 import {
   DashboardsOverviewInventoryItem,
   Plugin,
-  ResourceListPage,
-  ResourceDetailsPage,
-  RoutePage,
-  ModelFeatureFlag,
-  ModelDefinition,
   DashboardsOverviewResourceActivity,
   DashboardsOverviewInventoryItemReplacement,
   DashboardsInventoryItemGroup,
@@ -37,59 +32,15 @@ import { getHostPowerStatus, hasPowerManagement, isDetached } from './selectors'
 import { BareMetalHostKind } from './types';
 
 type ConsumedExtensions =
+  | CustomFeatureFlag
+  | DashboardsInventoryItemGroup
   | DashboardsOverviewInventoryItem
   | DashboardsOverviewInventoryItemReplacement
-  | DashboardsInventoryItemGroup
-  | ResourceListPage
-  | ResourceDetailsPage
-  | RoutePage
-  | ModelFeatureFlag
-  | ModelDefinition
-  | CustomFeatureFlag
   | DashboardsOverviewResourceActivity;
 
 const METAL3_FLAG = 'METAL3';
 
 const plugin: Plugin<ConsumedExtensions> = [
-  {
-    type: 'ModelDefinition',
-    properties: {
-      models: [
-        BareMetalHostModel,
-        NodeMaintenanceModel,
-        NodeMaintenanceKubevirtAlphaModel,
-        NodeMaintenanceKubevirtBetaModel,
-      ],
-    },
-  },
-  {
-    type: 'FeatureFlag/Model',
-    properties: {
-      model: BareMetalHostModel,
-      flag: METAL3_FLAG,
-    },
-  },
-  {
-    type: 'FeatureFlag/Model',
-    properties: {
-      model: NodeMaintenanceModel,
-      flag: NODE_MAINTENANCE_FLAG,
-    },
-  },
-  {
-    type: 'FeatureFlag/Model',
-    properties: {
-      model: NodeMaintenanceKubevirtBetaModel,
-      flag: NODE_MAINTENANCE_KV_BETA_FLAG,
-    },
-  },
-  {
-    type: 'FeatureFlag/Model',
-    properties: {
-      model: NodeMaintenanceKubevirtAlphaModel,
-      flag: NODE_MAINTENANCE_KV_ALPHA_FLAG,
-    },
-  },
   {
     type: 'FeatureFlag/Custom',
     properties: {
@@ -100,54 +51,6 @@ const plugin: Plugin<ConsumedExtensions> = [
     type: 'FeatureFlag/Custom',
     properties: {
       detect: detectBMOEnabled,
-    },
-  },
-  {
-    type: 'Page/Resource/List',
-    properties: {
-      model: BareMetalHostModel,
-      loader: () =>
-        import(
-          './components/baremetal-hosts/BareMetalHostsPage' /* webpackChunkName: "metal3-baremetalhost" */
-        ).then((m) => m.default),
-    },
-  },
-  {
-    type: 'Page/Resource/Details',
-    properties: {
-      model: BareMetalHostModel,
-      loader: () =>
-        import(
-          './components/baremetal-hosts/BareMetalHostDetailsPage' /* webpackChunkName: "metal3-baremetalhost" */
-        ).then((m) => m.default),
-    },
-  },
-  {
-    type: 'Page/Route',
-    properties: {
-      exact: true,
-      path: `/k8s/ns/:ns/${referenceForModel(BareMetalHostModel)}/~new/form`,
-      loader: () =>
-        import(
-          './components/baremetal-hosts/add-baremetal-host/AddBareMetalHostPage' /* webpackChunkName: "metal3-baremetalhost" */
-        ).then((m) => m.default),
-    },
-    flags: {
-      required: [BAREMETAL_FLAG, METAL3_FLAG],
-    },
-  },
-  {
-    type: 'Page/Route',
-    properties: {
-      exact: true,
-      path: `/k8s/ns/:ns/${referenceForModel(BareMetalHostModel)}/:name/edit`,
-      loader: () =>
-        import(
-          './components/baremetal-hosts/add-baremetal-host/AddBareMetalHostPage' /* webpackChunkName: "metal3-baremetalhost" */
-        ).then((m) => m.default),
-    },
-    flags: {
-      required: [BAREMETAL_FLAG, METAL3_FLAG],
     },
   },
   {

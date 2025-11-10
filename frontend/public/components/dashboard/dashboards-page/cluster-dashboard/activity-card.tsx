@@ -3,34 +3,32 @@ import * as _ from 'lodash-es';
 import { Map as ImmutableMap } from 'immutable';
 import { connect } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom-v5-compat';
 
-import { Card, CardHeader, CardTitle } from '@patternfly/react-core';
+import { Card, CardHeader, CardTitle, CardFooter, Divider } from '@patternfly/react-core';
 import { DashboardItemProps, withDashboardResources } from '../../with-dashboard-resources';
 import { EventModel } from '../../../../models';
-import { FirehoseResource, FirehoseResult } from '../../../utils';
+import { FirehoseResource, FirehoseResult } from '../../../utils/types';
 import { EventKind, K8sKind } from '../../../../module/k8s';
 import ActivityBody, {
   RecentEventsBody,
   OngoingActivityBody,
 } from '@console/shared/src/components/dashboard/activity-card/ActivityBody';
+import { useExtensions } from '@console/plugin-sdk/src/api/useExtensions';
 import {
-  useExtensions,
   DashboardsOverviewResourceActivity,
-  DashboardsOverviewPrometheusActivity,
   isDashboardsOverviewResourceActivity,
-  isDashboardsOverviewPrometheusActivity,
 } from '@console/plugin-sdk';
 import {
   useResolvedExtensions,
   DashboardsOverviewResourceActivity as DynamicDashboardsOverviewResourceActivity,
-  DashboardsOverviewPrometheusActivity as DynamicDashboardsOverviewPrometheusActivity,
+  DashboardsOverviewPrometheusActivity,
   isDashboardsOverviewResourceActivity as isDynamicDashboardsOverviewResourceActivity,
-  isDashboardsOverviewPrometheusActivity as isDynamicDashboardsOverviewPrometheusActivity,
+  isDashboardsOverviewPrometheusActivity,
   ResolvedExtension,
 } from '@console/dynamic-plugin-sdk';
 import { uniqueResource } from './utils';
 import { PrometheusResponse } from '../../../graphs';
-import { Link } from 'react-router-dom-v5-compat';
 
 const eventsResource: FirehoseResource = { isList: true, kind: EventModel.kind, prop: 'events' };
 const viewEvents = '/k8s/all-namespaces/events';
@@ -82,25 +80,22 @@ const OngoingActivity = connect(mapStateToProps)(
         [dynamicResourceActivityExtensions, models, resourceActivityExtensions],
       );
 
-      const prometheusActivities = useExtensions<DashboardsOverviewPrometheusActivity>(
+      const [prometheusActivities] = useResolvedExtensions<DashboardsOverviewPrometheusActivity>(
         isDashboardsOverviewPrometheusActivity,
       );
-      const [dynamicPrometheusActivities] = useResolvedExtensions<
-        DynamicDashboardsOverviewPrometheusActivity
-      >(isDynamicDashboardsOverviewPrometheusActivity);
 
       React.useEffect(() => {
         resourceActivities.forEach((a, index) => {
           watchK8sResource(uniqueResource(a.properties.k8sResource, index));
         });
-        [...prometheusActivities, ...dynamicPrometheusActivities].forEach((a) =>
+        prometheusActivities.forEach((a) =>
           a.properties.queries.forEach((q) => watchPrometheus(q)),
         );
         return () => {
           resourceActivities.forEach((a, index) => {
             stopWatchK8sResource(uniqueResource(a.properties.k8sResource, index));
           });
-          [...prometheusActivities, ...dynamicPrometheusActivities].forEach((a) =>
+          prometheusActivities.forEach((a) =>
             a.properties.queries.forEach(stopWatchPrometheusQuery),
           );
         };
@@ -111,7 +106,6 @@ const OngoingActivity = connect(mapStateToProps)(
         stopWatchPrometheusQuery,
         resourceActivities,
         prometheusActivities,
-        dynamicPrometheusActivities,
       ]);
 
       const allResourceActivities = React.useMemo(
@@ -139,7 +133,7 @@ const OngoingActivity = connect(mapStateToProps)(
 
       const allPrometheusActivities = React.useMemo(
         () =>
-          [...prometheusActivities, ...dynamicPrometheusActivities]
+          prometheusActivities
             .filter((a) => {
               const queryResults = a.properties.queries.map(
                 (q) => prometheusResults.getIn([q, 'data']) as PrometheusResponse,
@@ -151,13 +145,11 @@ const OngoingActivity = connect(mapStateToProps)(
                 (q) => prometheusResults.getIn([q, 'data']) as PrometheusResponse,
               );
               return {
-                loader: (a as DashboardsOverviewPrometheusActivity)?.properties.loader,
-                component: (a as ResolvedExtension<DynamicDashboardsOverviewPrometheusActivity>)
-                  ?.properties.component,
+                component: a.properties.component,
                 results: queryResults,
               };
             }),
-        [dynamicPrometheusActivities, prometheusActivities, prometheusResults],
+        [prometheusActivities, prometheusResults],
       );
 
       const resourcesLoaded = React.useMemo(
@@ -191,29 +183,49 @@ const OngoingActivity = connect(mapStateToProps)(
   ),
 );
 
+const RecentEventFooter = withDashboardResources(
+  ({ watchK8sResource, stopWatchK8sResource, resources }) => {
+    const { t } = useTranslation();
+    React.useEffect(() => {
+      watchK8sResource(eventsResource);
+      return () => {
+        stopWatchK8sResource(eventsResource);
+      };
+    }, [watchK8sResource, stopWatchK8sResource]);
+
+    const events = resources.events as FirehoseResult<EventKind[]>;
+    const shouldShowFooter = events?.loaded && events?.data && events.data.length > 50;
+
+    if (!shouldShowFooter) {
+      return null;
+    }
+
+    return (
+      <>
+        <Divider />
+        <CardFooter>
+          <Link to={viewEvents} data-test="events-view-all-link">
+            {t('console-shared~View all events')}
+          </Link>
+        </CardFooter>
+      </>
+    );
+  },
+);
+
 export const ActivityCard: React.FC<{}> = React.memo(() => {
   const { t } = useTranslation();
+
   return (
     <Card data-test-id="activity-card">
-      <CardHeader
-        actions={{
-          actions: (
-            <>
-              <Link to={viewEvents} data-test="view-events-link">
-                {t('public~View events')}
-              </Link>
-            </>
-          ),
-          hasNoOffset: false,
-          className: 'co-overview-card__actions',
-        }}
-      >
+      <CardHeader>
         <CardTitle>{t('public~Activity')}</CardTitle>
       </CardHeader>
       <ActivityBody className="co-overview-dashboard__activity-body">
         <OngoingActivity />
         <RecentEvent />
       </ActivityBody>
+      <RecentEventFooter />
     </Card>
   );
 });

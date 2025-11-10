@@ -8,6 +8,7 @@ import {
   ContentVariants,
   Toolbar,
   ToolbarContent,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +31,7 @@ import {
   ClusterGlobalConfig,
   isClusterGlobalConfig,
 } from '@console/dynamic-plugin-sdk/src/extensions/cluster-settings';
-import { useCanClusterUpgrade } from '@console/shared';
+import { useCanClusterUpgrade } from '@console/shared/src/hooks/useCanClusterUpgrade';
 import filterNonUpgradableResources from './filterNonUpgradableResources';
 import { IDP_TYPES } from '@console/shared/src/constants/auth';
 
@@ -184,6 +185,8 @@ export const GlobalConfigPage: React.FCC = () => {
     return () => {
       isSubscribed = false;
     };
+    // oauthMenuItems, editYAMLMenuItem, viewAPIExplorerMenuItem would cause infinite renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clusterOperatorConfigResources, configResources, globalConfigs, t]);
   const visibleItems = items.filter(({ label, description = '' }) => {
     return (
@@ -203,11 +206,13 @@ export const GlobalConfigPage: React.FCC = () => {
           </Content>
           <Toolbar>
             <ToolbarContent>
-              <TextFilter
-                value={textFilter}
-                label={t('public~by name or description')}
-                onChange={(_event, val) => setTextFilter(val)}
-              />
+              <ToolbarItem>
+                <TextFilter
+                  value={textFilter}
+                  label={t('public~by name or description')}
+                  onChange={(_event, val) => setTextFilter(val)}
+                />
+              </ToolbarItem>
             </ToolbarContent>
           </Toolbar>
         </>

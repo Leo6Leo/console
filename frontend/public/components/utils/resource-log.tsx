@@ -1,6 +1,5 @@
 import {
   MouseEventHandler,
-  PropsWithChildren,
   ReactNode,
   Ref,
   useCallback,
@@ -54,7 +53,8 @@ import {
 } from '@console/shared/src/constants';
 import { useUserSettings } from '@console/shared';
 import { ThemeContext } from '@console/internal/components/ThemeProvider';
-import { Loading, TogglePlay } from './';
+import { Loading } from '@console/shared/src/components/loading/Loading';
+import { TogglePlay } from './toggle-play';
 import { ExternalLinkButton } from '@console/shared/src/components/links/ExternalLinkButton';
 import { LinkTo } from '@console/shared/src/components/links/LinkTo';
 import { ExternalLink } from '@console/shared/src/components/links/ExternalLink';
@@ -502,7 +502,7 @@ const LogControls: React.FCC<LogControlsProps> = ({
 };
 
 /** helper for opening a new window with raw logs. this is so we don't mess with the previous i18n string */
-const LogLink: React.FCC<PropsWithChildren<{ href: string }>> = ({ children, href }) => (
+const LogLink: React.FCC<{ children: ReactNode; href: string }> = ({ children, href }) => (
   <ExternalLink component="button" onClick={handleRawLogs(href)}>
     {children}
   </ExternalLink>

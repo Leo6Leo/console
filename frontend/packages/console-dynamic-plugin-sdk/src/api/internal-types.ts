@@ -17,7 +17,9 @@ type WithClassNameProps<R = {}> = R & {
   className?: string;
 };
 
-export type ActivityItemProps = WithClassNameProps;
+export type ActivityItemProps = WithClassNameProps<{
+  children?: React.ReactNode;
+}>;
 
 export type ActivityBodyProps = WithClassNameProps<{
   children: React.ReactNode;
@@ -25,6 +27,7 @@ export type ActivityBodyProps = WithClassNameProps<{
 
 export type AlertsBodyProps = WithClassNameProps<{
   error?: boolean;
+  children?: React.ReactNode;
 }>;
 
 export type RecentEventsBodyProps = {
@@ -40,7 +43,6 @@ type OngoingActvityProps<T> = {
 export type OngoingActivityBodyProps = {
   resourceActivities?: (OngoingActvityProps<K8sResourceCommon> & {
     timestamp: Date;
-    loader?: () => Promise<React.ComponentType<Partial<OngoingActvityProps<K8sResourceCommon>>>>;
     component?: React.ComponentType<Partial<OngoingActvityProps<K8sResourceCommon>>>;
   })[];
   prometheusActivities?: {
@@ -66,6 +68,7 @@ export type HealthItemProps = WithClassNameProps<{
   popupKeepOnOutsideClick?: boolean;
   noIcon?: boolean;
   icon?: React.ReactNode;
+  children?: React.ReactNode;
 }>;
 
 export type ResourceInventoryItemProps = {

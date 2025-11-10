@@ -4,14 +4,12 @@ import { PauseIcon } from '@patternfly/react-icons/dist/esm/icons/pause-icon';
 import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
 import { css } from '@patternfly/react-styles';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom-v5-compat';
 import {
   ActivityBodyProps,
   OngoingActivityBodyProps,
   RecentEventsBodyProps,
 } from '@console/dynamic-plugin-sdk/src/api/internal-types';
 import { ErrorLoadingEvents, sortEvents } from '@console/internal/components/events';
-import { AsyncComponent } from '@console/internal/components/utils/async';
 import { EventKind } from '@console/internal/module/k8s';
 import { Timestamp } from '@console/shared/src/components/datetime/Timestamp';
 import { ErrorBoundaryInline } from '@console/shared/src/components/error';
@@ -19,7 +17,7 @@ import EventItem from './EventItem';
 
 import './activity-card.scss';
 
-export const Activity: React.FC<ActivityProps> = ({ timestamp, children }) => {
+export const Activity: React.FCC<ActivityProps> = ({ timestamp, children }) => {
   const { t } = useTranslation();
   return (
     <div className="co-activity-item__ongoing" data-test="activity">
@@ -41,7 +39,6 @@ export const RecentEventsBodyContent: React.FC<RecentEventsBodyContentProps> = (
   filter,
   paused,
   setPaused,
-  moreLink,
 }) => {
   const { t } = useTranslation();
   const ref = React.useRef<EventKind[]>([]);
@@ -112,15 +109,6 @@ export const RecentEventsBodyContent: React.FC<RecentEventsBodyContentProps> = (
           <EventItem key={e.metadata.uid} isExpanded={isExpanded} onToggle={onToggle} event={e} />
         ))}
       </Accordion>
-      {sortedEvents.length > 50 && !!moreLink && (
-        <Link
-          className="co-activity-card__recent-more-link"
-          to={moreLink}
-          data-test="events-view-all-link"
-        >
-          {t('console-shared~View all events')}
-        </Link>
-      )}
     </>
   );
 };
@@ -173,31 +161,21 @@ export const OngoingActivityBody: React.FC<OngoingActivityBodyProps> = ({
       </div>
     );
   } else {
-    const allActivities = prometheusActivities.map(
-      ({ results, loader, component: Component }, idx) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <Activity key={idx}>
-          <ErrorBoundaryInline>
-            {loader ? (
-              <AsyncComponent loader={loader} results={results} />
-            ) : (
-              <Component results={results} />
-            )}
-          </ErrorBoundaryInline>
-        </Activity>
-      ),
-    );
+    const allActivities = prometheusActivities.map(({ results, component: Component }, idx) => (
+      // eslint-disable-next-line react/no-array-index-key
+      <Activity key={idx}>
+        <ErrorBoundaryInline>
+          <Component results={results} />
+        </ErrorBoundaryInline>
+      </Activity>
+    ));
     resourceActivities
       .sort((a, b) => +b.timestamp - +a.timestamp)
-      .forEach(({ resource, timestamp, loader, component: Component }) =>
+      .forEach(({ resource, timestamp, component: Component }) =>
         allActivities.push(
           <Activity key={resource.metadata.uid} timestamp={timestamp}>
             <ErrorBoundaryInline>
-              {loader ? (
-                <AsyncComponent loader={loader} resource={resource} />
-              ) : (
-                <Component resource={resource} />
-              )}
+              <Component resource={resource} />
             </ErrorBoundaryInline>
           </Activity>,
         ),
@@ -222,7 +200,7 @@ export const OngoingActivityBody: React.FC<OngoingActivityBodyProps> = ({
   );
 };
 
-const ActivityBody: React.FC<ActivityBodyProps> = ({ children, className }) => (
+const ActivityBody: React.FCC<ActivityBodyProps> = ({ children, className }) => (
   <div className={css('co-activity-card__body', className)} id="activity-body">
     {children}
   </div>

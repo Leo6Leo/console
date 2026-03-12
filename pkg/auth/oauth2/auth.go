@@ -65,6 +65,9 @@ type OAuth2Authenticator struct {
 
 	// Custom login command to display in the console
 	ocLoginCommand string
+
+	// allowedRedirectHosts maps hostnames allowed for dynamic redirect_uri
+	allowedRedirectHosts map[string]bool
 }
 
 // loginMethod is used to handle OAuth2 responses and associate bearer tokens
@@ -128,6 +131,10 @@ type Config struct {
 
 	// Custom login command to display in the console
 	OCLoginCommand string
+
+	// AllowedRedirectHosts maps hostnames that are allowed for dynamic
+	// OAuth redirect_uri selection (multi-URL console support).
+	AllowedRedirectHosts map[string]bool
 }
 
 type completedConfig struct {
@@ -264,14 +271,30 @@ func newUnstartedAuthenticator(c *completedConfig) *OAuth2Authenticator {
 		clientSecret: c.ClientSecret,
 		scopes:       c.Scope,
 
-		redirectURL:    c.RedirectURL,
-		errorURL:       c.ErrorURL,
-		successURL:     c.SuccessURL,
-		secureCookies:  c.SecureCookies,
-		k8sConfig:      c.K8sConfig,
-		metrics:        c.Metrics,
-		ocLoginCommand: c.OCLoginCommand,
+		redirectURL:          c.RedirectURL,
+		errorURL:             c.ErrorURL,
+		successURL:           c.SuccessURL,
+		secureCookies:        c.SecureCookies,
+		k8sConfig:            c.K8sConfig,
+		metrics:              c.Metrics,
+		ocLoginCommand:       c.OCLoginCommand,
+		allowedRedirectHosts: c.AllowedRedirectHosts,
 	}
+}
+
+// oauth2ConfigForHost returns an oauth2 config with the redirect URL rewritten
+// to use the given host, if that host is in the allowed set. Otherwise it
+// returns the default config.
+func (a *OAuth2Authenticator) oauth2ConfigForHost(host string) *oauth2.Config {
+	cfg := a.oauth2Config()
+	if host != "" && a.allowedRedirectHosts[host] {
+		u, err := url.Parse(a.redirectURL)
+		if err == nil {
+			u.Host = host
+			cfg.RedirectURL = u.String()
+		}
+	}
+	return cfg
 }
 
 // LoginFunc redirects to the OIDC provider for user login.
@@ -293,7 +316,7 @@ func (a *OAuth2Authenticator) LoginFunc(w http.ResponseWriter, r *http.Request) 
 		Secure:   a.secureCookies,
 	}
 	http.SetCookie(w, &cookie)
-	http.Redirect(w, r, a.oauth2Config().AuthCodeURL(state), http.StatusSeeOther)
+	http.Redirect(w, r, a.oauth2ConfigForHost(r.Host).AuthCodeURL(state), http.StatusSeeOther)
 }
 
 // LogoutFunc cleans up session cookies.
@@ -346,7 +369,7 @@ func (a *OAuth2Authenticator) CallbackFunc(fn func(loginInfo sessions.LoginJSON,
 			return
 		}
 		ctx := oidc.ClientContext(r.Context(), a.clientFunc())
-		oauthConfig := a.oauth2Config()
+		oauthConfig := a.oauth2ConfigForHost(r.Host)
 		token, err := oauthConfig.Exchange(ctx, code)
 		if err != nil {
 			klog.Errorf("unable to verify auth code with issuer: %v", err)

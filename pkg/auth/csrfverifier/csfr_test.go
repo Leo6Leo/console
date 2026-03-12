@@ -14,7 +14,7 @@ func testReferer(t *testing.T, referer string, accept bool) {
 	refererURL, err := url.Parse(validReferer)
 	require.NoError(t, err)
 
-	a := CSRFVerifier{refererURL: refererURL}
+	a := CSRFVerifier{refererURLs: []*url.URL{refererURL}}
 
 	r, err := http.NewRequest("POST", "/some-path", nil)
 
